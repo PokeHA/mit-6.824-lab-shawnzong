@@ -38,6 +38,9 @@ func main() {
 	intermediate := []mr.KeyValue{}
 	for _, filename := range os.Args[2:] {
 		file, err := os.Open(filename)
+
+		fmt.Println(filename, "已读取")
+
 		if err != nil {
 			log.Fatalf("cannot open %v", filename)
 		}
