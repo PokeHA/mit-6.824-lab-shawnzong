@@ -2,6 +2,7 @@ package mr
 
 import (
 	"fmt"
+	"time"
 )
 import "log"
 import "net/rpc"
@@ -33,10 +34,10 @@ func Worker(mapf func(string, string) []KeyValue,
 	for true {
 		mrtask := GetTask()
 		if mrtask.TaskName != "" {
-			fmt.Println(mrtask.TaskName)
+			fmt.Println("成功获取到任务", mrtask.TaskName)
 		} else {
-			fmt.Println("任务获取失败")
-			break
+			fmt.Println("任务获取失败，当前worker休眠1s")
+			time.Sleep(time.Second)
 		}
 	}
 
