@@ -26,15 +26,15 @@ type GetTaskArgs struct {
 }
 
 type GetTaskReply struct {
-	IsReduce bool
+	IsMap    bool
 	TaskName string
-	Seq      uint
+	Seq      int
 }
 
 type TaskFinishedArgs struct {
-	IsReduce bool
+	IsMap    bool
 	TaskName string
-	Seq      uint
+	Seq      int
 }
 
 type TaskFinishedReply struct {

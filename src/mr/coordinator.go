@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 )
 import "net"
 import "os"
@@ -12,12 +13,15 @@ import "net/http"
 
 type Coordinator struct {
 	// Your definitions here.
-	State int
+	State                    int
+	Lock                     sync.Mutex
+	MapTaskInfos             []MRTask
+	UnassignedMapTaskChannel chan MRTask
 }
 
 type MRTask struct {
 	IsMapTask bool
-	Seq       uint
+	Seq       int
 	TaskName  string
 }
 
@@ -32,9 +36,29 @@ type MRTask struct {
 //}
 
 // Worker从Coordinator获取Task
-func (c *Coordinator) GetTask(args *GetTaskArgs, reply *GetTaskReply) error {
+func (c *Coordinator) AssignTask(args *GetTaskArgs, reply *GetTaskReply) error {
+	c.Lock.Lock()
+	defer c.Lock.Unlock()
+
 	if c.State == 0 {
 		return errors.New("Coordinator is not Ready")
+	}
+
+	if c.State == 1 {
+
+		if len(c.UnassignedMapTaskChannel) > 0 {
+			//分发map任务
+			mrtask := <-c.UnassignedMapTaskChannel
+
+			reply.TaskName = mrtask.TaskName
+			reply.Seq = mrtask.Seq
+			reply.IsMap = mrtask.IsMapTask
+		} else {
+			c.Done()
+		}
+
+	} else {
+
 	}
 
 	return nil
@@ -78,10 +102,15 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 
 	// Your code here.
 	//初始化任务列表
+	c.UnassignedMapTaskChannel = make(chan MRTask, len(os.Args)-1)
 	for seq, filename := range os.Args[1:] {
 		fmt.Println(filename, "Map任务已加入")
-
+		mrtask := MRTask{true, seq, filename}
+		c.MapTaskInfos = append(c.MapTaskInfos, mrtask)
+		c.UnassignedMapTaskChannel <- mrtask
 	}
+
+	c.State = 1
 
 	c.server()
 	return &c

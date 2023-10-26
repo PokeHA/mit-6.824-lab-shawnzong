@@ -24,9 +24,26 @@ func Worker(mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string) {
 
 	// Your worker implementation here.
-
+	//从Coordinator获取任务并打印
 	// uncomment to send the Example RPC to the coordinator.
 	//CallExample()
+
+	mrtask := GetTask()
+	if mrtask.TaskName == "" {
+		fmt.Println(mrtask.TaskName)
+	}
+}
+
+func GetTask() MRTask {
+	args := GetTaskArgs{}
+	reply := GetTaskReply{}
+
+	ok := call("Coordinator.AssignTask", &args, &reply)
+	if ok {
+		return MRTask{reply.IsMap, reply.Seq, reply.TaskName}
+	} else {
+		return MRTask{}
+	}
 
 }
 
@@ -39,7 +56,6 @@ func CallExample() {
 	args := GetTaskArgs{}
 
 	// fill in the argument(s).
-	args.X = 99
 
 	// declare a reply structure.
 	reply := GetTaskReply{}
@@ -51,7 +67,7 @@ func CallExample() {
 	ok := call("Coordinator.Example", &args, &reply)
 	if ok {
 		// reply.Y should be 100.
-		fmt.Printf("reply.Y %v\n", reply.Y)
+		fmt.Printf("reply.Y %v\n", reply.Seq)
 	} else {
 		fmt.Printf("call failed!\n")
 	}
