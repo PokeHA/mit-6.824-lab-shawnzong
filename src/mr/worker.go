@@ -30,12 +30,16 @@ func Worker(mapf func(string, string) []KeyValue,
 	// uncomment to send the Example RPC to the coordinator.
 	//CallExample()
 
-	mrtask := GetTask()
-	if mrtask.TaskName == "" {
-		fmt.Println(mrtask.TaskName)
-	} else {
-		fmt.Println("任务获取失败")
+	for true {
+		mrtask := GetTask()
+		if mrtask.TaskName != "" {
+			fmt.Println(mrtask.TaskName)
+		} else {
+			fmt.Println("任务获取失败")
+			break
+		}
 	}
+
 }
 
 func GetTask() MRTask {
