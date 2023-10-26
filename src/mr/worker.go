@@ -1,6 +1,8 @@
 package mr
 
-import "fmt"
+import (
+	"fmt"
+)
 import "log"
 import "net/rpc"
 import "hash/fnv"
@@ -31,6 +33,8 @@ func Worker(mapf func(string, string) []KeyValue,
 	mrtask := GetTask()
 	if mrtask.TaskName == "" {
 		fmt.Println(mrtask.TaskName)
+	} else {
+		fmt.Println("任务获取失败")
 	}
 }
 
@@ -40,6 +44,7 @@ func GetTask() MRTask {
 
 	ok := call("Coordinator.AssignTask", &args, &reply)
 	if ok {
+		fmt.Println(reply.TaskName)
 		return MRTask{reply.IsMap, reply.Seq, reply.TaskName}
 	} else {
 		return MRTask{}
