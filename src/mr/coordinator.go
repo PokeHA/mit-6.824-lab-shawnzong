@@ -1,6 +1,10 @@
 package mr
 
-import "log"
+import (
+	"errors"
+	"fmt"
+	"log"
+)
 import "net"
 import "os"
 import "net/rpc"
@@ -8,7 +12,13 @@ import "net/http"
 
 type Coordinator struct {
 	// Your definitions here.
+	State int
+}
 
+type MRTask struct {
+	IsMapTask bool
+	Seq       uint
+	TaskName  string
 }
 
 // Your code here -- RPC handlers for the worker to call.
@@ -23,6 +33,9 @@ type Coordinator struct {
 
 // Worker从Coordinator获取Task
 func (c *Coordinator) GetTask(args *GetTaskArgs, reply *GetTaskReply) error {
+	if c.State == 0 {
+		return errors.New("Coordinator is not Ready")
+	}
 
 	return nil
 }
@@ -65,6 +78,10 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 
 	// Your code here.
 	//初始化任务列表
+	for seq, filename := range os.Args[1:] {
+		fmt.Println(filename, "Map任务已加入")
+
+	}
 
 	c.server()
 	return &c
