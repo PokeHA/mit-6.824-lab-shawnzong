@@ -36,7 +36,7 @@ func Worker(mapf func(string, string) []KeyValue,
 		if mrtask.TaskName != "" {
 			fmt.Println("成功获取到任务", mrtask.TaskName)
 
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * 3)
 
 			TaskDone(mrtask)
 

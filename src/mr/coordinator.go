@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 )
 import "net"
 import "os"
@@ -55,8 +56,26 @@ func (c *Coordinator) AssignTask(args *GetTaskArgs, reply *GetTaskReply) error {
 			reply.TaskName = mrtask.TaskName
 			reply.Seq = mrtask.Seq
 			reply.IsMap = mrtask.IsMapTask
+
+			//设定定时任务，10s后检查任务是否完成
+			go func() {
+				tm := time.NewTimer(time.Second * 5)
+				defer tm.Stop()
+				<-tm.C
+				c.Lock.Lock()
+				defer c.Lock.Unlock()
+
+				fmt.Println("定时任务启动")
+				if _, exist := c.AssignedMapTaskMap[mrtask.Seq]; exist {
+					//如果任务还在已分配map里
+					c.UnassignedMapTaskChannel <- mrtask
+					delete(c.AssignedMapTaskMap, mrtask.Seq)
+				}
+
+			}()
+
 		} else {
-			c.Done()
+			//c.Done()
 		}
 
 	} else {
@@ -74,7 +93,7 @@ func (c *Coordinator) Finished(args *TaskFinishedArgs, reply *TaskFinishedReply)
 	if args.IsMap && c.State == 1 {
 		delete(c.AssignedMapTaskMap, args.Seq)
 		fmt.Println("Coordinator：Map任务已完成", args.TaskName)
-		if len(c.AssignedMapTaskMap) == 0 {
+		if len(c.AssignedMapTaskMap) == 0 && len(c.UnassignedMapTaskChannel) == 0 {
 			fmt.Println("所有Map任务都处理完了")
 		}
 	}
