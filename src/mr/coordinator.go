@@ -17,6 +17,7 @@ type Coordinator struct {
 	Lock                     sync.Mutex
 	MapTaskInfos             []MRTask
 	UnassignedMapTaskChannel chan MRTask
+	AssignedMapTaskMap       map[int]MRTask
 }
 
 type MRTask struct {
@@ -49,6 +50,7 @@ func (c *Coordinator) AssignTask(args *GetTaskArgs, reply *GetTaskReply) error {
 		if len(c.UnassignedMapTaskChannel) > 0 {
 			//分发map任务
 			mrtask := <-c.UnassignedMapTaskChannel
+			c.AssignedMapTaskMap[mrtask.Seq] = mrtask
 
 			reply.TaskName = mrtask.TaskName
 			reply.Seq = mrtask.Seq
@@ -65,8 +67,17 @@ func (c *Coordinator) AssignTask(args *GetTaskArgs, reply *GetTaskReply) error {
 }
 
 // Worker通知Coordinator任务完成
-func (c *Coordinator) Finished(args *GetTaskArgs, reply *GetTaskReply) error {
+func (c *Coordinator) Finished(args *TaskFinishedArgs, reply *TaskFinishedReply) error {
+	c.Lock.Lock()
+	defer c.Lock.Unlock()
 
+	if args.IsMap && c.State == 1 {
+		delete(c.AssignedMapTaskMap, args.Seq)
+		fmt.Println("Coordinator：Map任务已完成", args.TaskName)
+		if len(c.AssignedMapTaskMap) == 0 {
+			fmt.Println("所有Map任务都处理完了")
+		}
+	}
 	return nil
 }
 
@@ -99,7 +110,7 @@ func (c *Coordinator) Done() bool {
 // nReduce is the number of reduce tasks to use.
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	c := Coordinator{}
-
+	c.AssignedMapTaskMap = make(map[int]MRTask)
 	// Your code here.
 	//初始化任务列表
 	c.UnassignedMapTaskChannel = make(chan MRTask, len(os.Args)-1)

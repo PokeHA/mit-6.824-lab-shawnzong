@@ -35,12 +35,16 @@ func Worker(mapf func(string, string) []KeyValue,
 		mrtask := GetTask()
 		if mrtask.TaskName != "" {
 			fmt.Println("成功获取到任务", mrtask.TaskName)
+
+			time.Sleep(time.Second * 5)
+
+			TaskDone(mrtask)
+
 		} else {
 			fmt.Println("任务获取失败，当前worker休眠1s")
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 10)
 		}
 	}
-
 }
 
 func GetTask() MRTask {
@@ -54,7 +58,21 @@ func GetTask() MRTask {
 	} else {
 		return MRTask{}
 	}
+}
 
+func TaskDone(mrtask MRTask) {
+	args := TaskFinishedArgs{}
+	reply := TaskFinishedReply{}
+	args.IsMap = mrtask.IsMapTask
+	args.TaskName = mrtask.TaskName
+	args.Seq = mrtask.Seq
+
+	ok := call("Coordinator.Finished", &args, &reply)
+	if ok {
+		fmt.Println("任务完成信息已传达")
+	} else {
+		fmt.Println("任务完成信息传递失败")
+	}
 }
 
 // example function to show how to make an RPC call to the coordinator.
