@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"sync"
 	"time"
 )
@@ -134,6 +135,21 @@ func (c *Coordinator) Done() bool {
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
 
 	//TODO 删除当前文件夹下所有mr开头的文件
+	mfiles, err := os.ReadDir("./")
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	for _, file := range mfiles {
+		found, err := regexp.MatchString("^mr-", file.Name())
+		if err != nil {
+			log.Fatal(err)
+		}
+		if found {
+			fmt.Println(file.Name(), "已删除")
+			os.Remove(file.Name())
+		}
+	}
 
 	c := Coordinator{}
 	c.NReduce = nReduce
@@ -141,7 +157,8 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	// Your code here.
 	//初始化任务列表
 	c.UnassignedMapTaskChannel = make(chan MRTask, len(os.Args)-1)
-	for seq, filename := range os.Args[1:] {
+	//for seq, filename := range os.Args[1:] {
+	for seq, filename := range files {
 		fmt.Println(filename, "Map任务已加入")
 		mrtask := MRTask{true, seq, filename, c.NReduce}
 		c.MapTaskInfos = append(c.MapTaskInfos, mrtask)
