@@ -29,6 +29,7 @@ type GetTaskReply struct {
 	IsMap    bool
 	TaskName string
 	Seq      int
+	NReduce  int
 }
 
 type TaskFinishedArgs struct {

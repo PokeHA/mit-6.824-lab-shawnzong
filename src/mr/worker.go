@@ -1,7 +1,12 @@
 package mr
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"sort"
+	"strconv"
 	"time"
 )
 import "log"
@@ -13,6 +18,14 @@ type KeyValue struct {
 	Key   string
 	Value string
 }
+
+// for sorting by key.
+type ByKey []KeyValue
+
+// for sorting by key.
+func (a ByKey) Len() int           { return len(a) }
+func (a ByKey) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByKey) Less(i, j int) bool { return a[i].Key < a[j].Key }
 
 // use ihash(key) % NReduce to choose the reduce
 // task number for each KeyValue emitted by Map.
@@ -31,12 +44,13 @@ func Worker(mapf func(string, string) []KeyValue,
 	// uncomment to send the Example RPC to the coordinator.
 	//CallExample()
 
+	workid := time.Now().UnixNano()
+
 	for true {
 		mrtask := GetTask()
 		if mrtask.TaskName != "" {
-			fmt.Println("成功获取到任务", mrtask.TaskName)
-
-			time.Sleep(time.Second * 3)
+			fmt.Println("worker ", workid, "成功获取到任务", mrtask.TaskName)
+			doMapTask(mrtask, mapf)
 
 			TaskDone(mrtask)
 
@@ -54,7 +68,7 @@ func GetTask() MRTask {
 	ok := call("Coordinator.AssignTask", &args, &reply)
 	if ok {
 		fmt.Println(reply.TaskName)
-		return MRTask{reply.IsMap, reply.Seq, reply.TaskName}
+		return MRTask{reply.IsMap, reply.Seq, reply.TaskName, reply.NReduce}
 	} else {
 		return MRTask{}
 	}
@@ -120,4 +134,55 @@ func call(rpcname string, args interface{}, reply interface{}) bool {
 
 	fmt.Println(err)
 	return false
+}
+
+func doMapTask(t MRTask, mapf func(string, string) []KeyValue) {
+	nreduce := t.NReduce
+	//intermediate := [][]KeyValue{}
+	intermediate := make([][]KeyValue, nreduce)
+
+	file, err := os.Open(t.TaskName)
+	fmt.Println(t.TaskName, "已读取")
+
+	if err != nil {
+		log.Fatalf("cannot open %v", t.TaskName)
+	}
+
+	content, err := ioutil.ReadAll(file)
+
+	if err != nil {
+		log.Fatalf("cannot read %v", t.TaskName)
+	}
+	file.Close()
+
+	kva := mapf(t.TaskName, string(content))
+	for _, kv := range kva {
+		intermediate[ihash(kv.Key)] = append(intermediate[ihash(kv.Key)], kv)
+	}
+
+	//对每个bucket进行排序
+	for i := 0; i < len(intermediate); i++ {
+		//TODO 验证对MapBucket的排序
+		sort.Sort(ByKey(intermediate[i]))
+	}
+
+	//将多个bucket保存到不同的文件里去
+	for i := 0; i < len(intermediate); i++ {
+		oname := "mr-" + strconv.Itoa(t.Seq) + "-" + strconv.Itoa(i)
+		_, ferr := os.Lstat(oname)
+		if ferr != nil {
+			fmt.Println("文件", oname, "已存在")
+			continue
+		}
+		onametmp := oname + "-tmp"
+		ofile, _ := os.Create(onametmp)
+		bytes, _ := json.Marshal(intermediate[i])
+		fmt.Fprintf(ofile, string(bytes))
+		ofile.Close()
+		//更改文件名
+		err := os.Rename(onametmp, oname)
+		if err == nil {
+			fmt.Println("文件", oname, "创建成功")
+		}
+	}
 }

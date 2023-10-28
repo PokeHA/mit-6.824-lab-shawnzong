@@ -19,12 +19,14 @@ type Coordinator struct {
 	MapTaskInfos             []MRTask
 	UnassignedMapTaskChannel chan MRTask
 	AssignedMapTaskMap       map[int]MRTask
+	NReduce                  int
 }
 
 type MRTask struct {
 	IsMapTask bool
 	Seq       int
 	TaskName  string
+	NReduce   int
 }
 
 // Your code here -- RPC handlers for the worker to call.
@@ -56,6 +58,7 @@ func (c *Coordinator) AssignTask(args *GetTaskArgs, reply *GetTaskReply) error {
 			reply.TaskName = mrtask.TaskName
 			reply.Seq = mrtask.Seq
 			reply.IsMap = mrtask.IsMapTask
+			reply.NReduce = c.NReduce
 
 			//设定定时任务，10s后检查任务是否完成
 			go func() {
@@ -129,13 +132,14 @@ func (c *Coordinator) Done() bool {
 // nReduce is the number of reduce tasks to use.
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	c := Coordinator{}
+	c.NReduce = nReduce
 	c.AssignedMapTaskMap = make(map[int]MRTask)
 	// Your code here.
 	//初始化任务列表
 	c.UnassignedMapTaskChannel = make(chan MRTask, len(os.Args)-1)
 	for seq, filename := range os.Args[1:] {
 		fmt.Println(filename, "Map任务已加入")
-		mrtask := MRTask{true, seq, filename}
+		mrtask := MRTask{true, seq, filename, c.NReduce}
 		c.MapTaskInfos = append(c.MapTaskInfos, mrtask)
 		c.UnassignedMapTaskChannel <- mrtask
 	}
