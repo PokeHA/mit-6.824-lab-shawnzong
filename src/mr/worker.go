@@ -170,7 +170,7 @@ func doMapTask(t MRTask, mapf func(string, string) []KeyValue) {
 	for i := 0; i < len(intermediate); i++ {
 		oname := "mr-" + strconv.Itoa(t.Seq) + "-" + strconv.Itoa(i)
 		_, ferr := os.Lstat(oname)
-		if ferr != nil {
+		if !os.IsNotExist(ferr) {
 			fmt.Println("文件", oname, "已存在")
 			continue
 		}
