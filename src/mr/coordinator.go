@@ -68,11 +68,12 @@ func (c *Coordinator) AssignTask(args *GetTaskArgs, reply *GetTaskReply) error {
 				c.Lock.Lock()
 				defer c.Lock.Unlock()
 
-				fmt.Println("定时任务启动")
+				//TODO 弄清楚超时判断的加锁时机
 				if _, exist := c.AssignedMapTaskMap[mrtask.Seq]; exist {
 					//如果任务还在已分配map里
 					c.UnassignedMapTaskChannel <- mrtask
 					delete(c.AssignedMapTaskMap, mrtask.Seq)
+					fmt.Println("Map任务", mrtask.TaskName, "超时，重新放回队列中")
 				}
 
 			}()
@@ -131,6 +132,9 @@ func (c *Coordinator) Done() bool {
 // main/mrcoordinator.go calls this function.
 // nReduce is the number of reduce tasks to use.
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
+
+	//TODO 删除当前文件夹下所有mr开头的文件
+
 	c := Coordinator{}
 	c.NReduce = nReduce
 	c.AssignedMapTaskMap = make(map[int]MRTask)

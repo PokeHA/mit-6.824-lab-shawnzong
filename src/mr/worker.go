@@ -51,11 +51,12 @@ func Worker(mapf func(string, string) []KeyValue,
 		if mrtask.TaskName != "" {
 			fmt.Println("worker ", workid, "成功获取到任务", mrtask.TaskName)
 			doMapTask(mrtask, mapf)
-
+			//TODO 删除这个停三秒
+			time.Sleep(time.Second * 3)
 			TaskDone(mrtask)
 
 		} else {
-			fmt.Println("任务获取失败，当前worker休眠1s")
+			fmt.Println("任务获取失败，当前worker休眠10s")
 			time.Sleep(time.Second * 10)
 		}
 	}
