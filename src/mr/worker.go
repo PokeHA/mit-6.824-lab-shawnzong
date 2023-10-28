@@ -157,7 +157,7 @@ func doMapTask(t MRTask, mapf func(string, string) []KeyValue) {
 
 	kva := mapf(t.TaskName, string(content))
 	for _, kv := range kva {
-		intermediate[ihash(kv.Key)] = append(intermediate[ihash(kv.Key)], kv)
+		intermediate[ihash(kv.Key)%nreduce] = append(intermediate[ihash(kv.Key)%nreduce], kv)
 	}
 
 	//对每个bucket进行排序
