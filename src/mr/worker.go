@@ -219,7 +219,7 @@ func doReduceTask(t MRTask, reducef func(string, []string) string) {
 			var tmp []KeyValue
 			//json.Unmarshal([]byte(bfRead), &tmp)
 
-			content, err := ioutil.ReadFile("./config.json")
+			content, err := ioutil.ReadFile(file.Name())
 			dropErr(err)
 			err = json.Unmarshal(content, &tmp)
 			intermediate = append(intermediate, tmp...)
