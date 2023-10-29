@@ -51,10 +51,9 @@ func (c *Coordinator) AssignTask(args *GetTaskArgs, reply *GetTaskReply) error {
 		return errors.New("Coordinator is not Ready")
 	}
 
-	if c.State == 1 {
-
+	if c.State == 1 || c.State == 2 {
 		if len(c.UnassignedTaskChannel) > 0 {
-			//分发map任务
+			//分发map或reduce任务
 			mrtask := <-c.UnassignedTaskChannel
 			c.AssignedTaskMap[mrtask.Seq] = mrtask
 
@@ -76,17 +75,10 @@ func (c *Coordinator) AssignTask(args *GetTaskArgs, reply *GetTaskReply) error {
 					//如果任务还在已分配map里
 					c.UnassignedTaskChannel <- mrtask
 					delete(c.AssignedTaskMap, mrtask.Seq)
-					fmt.Println("Map任务", mrtask.TaskName, "超时，重新放回队列中")
+					fmt.Println("任务", mrtask.TaskName, "超时，重新放回队列中")
 				}
-
 			}()
-
-		} else {
-			//c.Done()
 		}
-
-	} else {
-
 	}
 
 	return nil
@@ -105,6 +97,17 @@ func (c *Coordinator) Finished(args *TaskFinishedArgs, reply *TaskFinishedReply)
 			c.State = 0
 			//准备reduce任务
 			prepareReduceTask(c)
+		}
+	}
+
+	if !args.IsMap && c.State == 2 {
+		delete(c.AssignedTaskMap, args.Seq)
+		fmt.Println("Coordinator：Reduce任务已完成", args.TaskName)
+		if len(c.AssignedTaskMap) == 0 && len(c.UnassignedTaskChannel) == 0 {
+			fmt.Println("所有Reduce任务都处理完了")
+			c.State = 0
+			//TODO 准备退出程序
+
 		}
 	}
 	return nil

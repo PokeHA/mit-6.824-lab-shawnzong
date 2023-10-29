@@ -50,7 +50,12 @@ func Worker(mapf func(string, string) []KeyValue,
 		mrtask := GetTask()
 		if mrtask.TaskName != "" {
 			fmt.Println("worker ", workid, "成功获取到任务", mrtask.TaskName)
-			doMapTask(mrtask, mapf)
+			if mrtask.IsMapTask {
+				doMapTask(mrtask, mapf)
+			} else {
+				doReduceTask(mrtask, reducef)
+			}
+
 			//TODO 删除这个停三秒
 			time.Sleep(time.Second * 3)
 			TaskDone(mrtask)
@@ -186,4 +191,8 @@ func doMapTask(t MRTask, mapf func(string, string) []KeyValue) {
 			fmt.Println("文件", oname, "创建成功")
 		}
 	}
+}
+
+func doReduceTask(t MRTask, reducef func(string, []string) string) {
+	fmt.Println("Worker接收Reduce任务", t.TaskName)
 }
