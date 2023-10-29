@@ -163,7 +163,7 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	c.NReduce = nReduce
 	//准备Map任务
 	prepareMapTask(&c, files)
-
+	//prepareReduceTask(&c)
 	c.server()
 	return &c
 }
@@ -173,7 +173,11 @@ func prepareMapTask(c *Coordinator, files []string) {
 	c.AssignedTaskMap = make(map[int]MRTask)
 	// Your code here.
 	//初始化任务列表
-	c.UnassignedTaskChannel = make(chan MRTask, len(os.Args)-1)
+	channelsize := len(files)
+	if c.NReduce > channelsize {
+		channelsize = c.NReduce
+	}
+	c.UnassignedTaskChannel = make(chan MRTask, channelsize)
 	//for seq, filename := range os.Args[1:] {
 	for seq, filename := range files {
 		fmt.Println(filename, "Map任务已加入")

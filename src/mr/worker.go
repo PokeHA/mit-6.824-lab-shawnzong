@@ -194,5 +194,5 @@ func doMapTask(t MRTask, mapf func(string, string) []KeyValue) {
 }
 
 func doReduceTask(t MRTask, reducef func(string, []string) string) {
-	fmt.Println("Worker接收Reduce任务", t.TaskName)
+	fmt.Println("Worker接收到Reduce任务", t.TaskName)
 }
