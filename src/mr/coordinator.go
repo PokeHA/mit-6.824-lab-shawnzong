@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -15,12 +16,13 @@ import "net/http"
 
 type Coordinator struct {
 	// Your definitions here.
-	State                    int
-	Lock                     sync.Mutex
-	MapTaskInfos             []MRTask
-	UnassignedMapTaskChannel chan MRTask
-	AssignedMapTaskMap       map[int]MRTask
-	NReduce                  int
+	State                 int
+	Lock                  sync.Mutex
+	MapTaskInfos          []MRTask
+	ReduceTaskInfos       []MRTask
+	UnassignedTaskChannel chan MRTask
+	AssignedTaskMap       map[int]MRTask
+	NReduce               int
 }
 
 type MRTask struct {
@@ -51,10 +53,10 @@ func (c *Coordinator) AssignTask(args *GetTaskArgs, reply *GetTaskReply) error {
 
 	if c.State == 1 {
 
-		if len(c.UnassignedMapTaskChannel) > 0 {
+		if len(c.UnassignedTaskChannel) > 0 {
 			//分发map任务
-			mrtask := <-c.UnassignedMapTaskChannel
-			c.AssignedMapTaskMap[mrtask.Seq] = mrtask
+			mrtask := <-c.UnassignedTaskChannel
+			c.AssignedTaskMap[mrtask.Seq] = mrtask
 
 			reply.TaskName = mrtask.TaskName
 			reply.Seq = mrtask.Seq
@@ -70,10 +72,10 @@ func (c *Coordinator) AssignTask(args *GetTaskArgs, reply *GetTaskReply) error {
 				defer c.Lock.Unlock()
 
 				//TODO 弄清楚超时判断的加锁时机
-				if _, exist := c.AssignedMapTaskMap[mrtask.Seq]; exist {
+				if _, exist := c.AssignedTaskMap[mrtask.Seq]; exist {
 					//如果任务还在已分配map里
-					c.UnassignedMapTaskChannel <- mrtask
-					delete(c.AssignedMapTaskMap, mrtask.Seq)
+					c.UnassignedTaskChannel <- mrtask
+					delete(c.AssignedTaskMap, mrtask.Seq)
 					fmt.Println("Map任务", mrtask.TaskName, "超时，重新放回队列中")
 				}
 
@@ -96,10 +98,13 @@ func (c *Coordinator) Finished(args *TaskFinishedArgs, reply *TaskFinishedReply)
 	defer c.Lock.Unlock()
 
 	if args.IsMap && c.State == 1 {
-		delete(c.AssignedMapTaskMap, args.Seq)
+		delete(c.AssignedTaskMap, args.Seq)
 		fmt.Println("Coordinator：Map任务已完成", args.TaskName)
-		if len(c.AssignedMapTaskMap) == 0 && len(c.UnassignedMapTaskChannel) == 0 {
+		if len(c.AssignedTaskMap) == 0 && len(c.UnassignedTaskChannel) == 0 {
 			fmt.Println("所有Map任务都处理完了")
+			c.State = 0
+			//准备reduce任务
+			prepareReduceTask(c)
 		}
 	}
 	return nil
@@ -153,20 +158,39 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 
 	c := Coordinator{}
 	c.NReduce = nReduce
-	c.AssignedMapTaskMap = make(map[int]MRTask)
+	//准备Map任务
+	prepareMapTask(&c, files)
+
+	c.server()
+	return &c
+}
+
+// 准备Map任务
+func prepareMapTask(c *Coordinator, files []string) {
+	c.AssignedTaskMap = make(map[int]MRTask)
 	// Your code here.
 	//初始化任务列表
-	c.UnassignedMapTaskChannel = make(chan MRTask, len(os.Args)-1)
+	c.UnassignedTaskChannel = make(chan MRTask, len(os.Args)-1)
 	//for seq, filename := range os.Args[1:] {
 	for seq, filename := range files {
 		fmt.Println(filename, "Map任务已加入")
 		mrtask := MRTask{true, seq, filename, c.NReduce}
 		c.MapTaskInfos = append(c.MapTaskInfos, mrtask)
-		c.UnassignedMapTaskChannel <- mrtask
+		c.UnassignedTaskChannel <- mrtask
 	}
-
 	c.State = 1
+}
 
-	c.server()
-	return &c
+// 准备Reduce任务
+func prepareReduceTask(c *Coordinator) {
+	fmt.Println("开始处理Reduce任务")
+	//Reduce任务应该就是nReduce个
+	for i := 0; i < c.NReduce; i++ {
+		c.ReduceTaskInfos = append(c.ReduceTaskInfos, MRTask{false, i, "mr-*-" + strconv.Itoa(i), c.NReduce})
+	}
+	for _, t := range c.ReduceTaskInfos {
+		fmt.Println("Map任务", t.TaskName, "已加入")
+		c.UnassignedTaskChannel <- t
+	}
+	c.State = 2
 }
