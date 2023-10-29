@@ -193,7 +193,7 @@ func prepareReduceTask(c *Coordinator) {
 	fmt.Println("开始处理Reduce任务")
 	//Reduce任务应该就是nReduce个
 	for i := 0; i < c.NReduce; i++ {
-		c.ReduceTaskInfos = append(c.ReduceTaskInfos, MRTask{false, i, "mr-*-" + strconv.Itoa(i), c.NReduce})
+		c.ReduceTaskInfos = append(c.ReduceTaskInfos, MRTask{false, i, "mr-.-" + strconv.Itoa(i) + "$", c.NReduce})
 	}
 	for _, t := range c.ReduceTaskInfos {
 		fmt.Println("Map任务", t.TaskName, "已加入")
