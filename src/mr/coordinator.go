@@ -106,6 +106,7 @@ func (c *Coordinator) Finished(args *TaskFinishedArgs, reply *TaskFinishedReply)
 		if len(c.AssignedTaskMap) == 0 && len(c.UnassignedTaskChannel) == 0 {
 			fmt.Println("所有Reduce任务都处理完了")
 			c.State = 3
+			fmt.Println("c.State当前的值为", c.State)
 			//TODO 准备退出程序
 
 		}

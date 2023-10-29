@@ -229,9 +229,8 @@ func doReduceTask(t MRTask, reducef func(string, []string) string) {
 		}
 	}
 	oname := "mr-out-" + strconv.Itoa(t.Seq)
-
-	ofile, _ := os.Create(oname)
-	defer ofile.Close()
+	onametmp := oname + "-tmp"
+	ofile, _ := os.Create(onametmp)
 
 	i := 0
 	for i < len(intermediate) {
@@ -248,6 +247,12 @@ func doReduceTask(t MRTask, reducef func(string, []string) string) {
 		// this is the correct format for each line of Reduce output.
 		fmt.Fprintf(ofile, "%v %v\n", intermediate[i].Key, output)
 		i = j
+	}
+	ofile.Close()
+	//更改文件名
+	err = os.Rename(onametmp, oname)
+	if err == nil {
+		fmt.Println("文件", oname, "创建成功")
 	}
 
 }
