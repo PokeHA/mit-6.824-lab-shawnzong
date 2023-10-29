@@ -75,7 +75,7 @@ func (c *Coordinator) AssignTask(args *GetTaskArgs, reply *GetTaskReply) error {
 					//如果任务还在已分配map里
 					c.UnassignedTaskChannel <- mrtask
 					delete(c.AssignedTaskMap, mrtask.Seq)
-					fmt.Println("任务", mrtask.TaskName, "超时，重新放回队列中")
+					//fmt.Println("任务", mrtask.TaskName, "超时，重新放回队列中")
 				}
 			}()
 		}
@@ -91,9 +91,9 @@ func (c *Coordinator) Finished(args *TaskFinishedArgs, reply *TaskFinishedReply)
 
 	if args.IsMap && c.State == 1 {
 		delete(c.AssignedTaskMap, args.Seq)
-		fmt.Println("Coordinator：Map任务已完成", args.TaskName)
+		//fmt.Println("Coordinator：Map任务已完成", args.TaskName)
 		if len(c.AssignedTaskMap) == 0 && len(c.UnassignedTaskChannel) == 0 {
-			fmt.Println("所有Map任务都处理完了")
+			//fmt.Println("所有Map任务都处理完了")
 			c.State = 0
 			//准备reduce任务
 			prepareReduceTask(c)
@@ -102,11 +102,11 @@ func (c *Coordinator) Finished(args *TaskFinishedArgs, reply *TaskFinishedReply)
 
 	if !args.IsMap && c.State == 2 {
 		delete(c.AssignedTaskMap, args.Seq)
-		fmt.Println("Coordinator：Reduce任务已完成", args.TaskName)
+		//fmt.Println("Coordinator：Reduce任务已完成", args.TaskName)
 		if len(c.AssignedTaskMap) == 0 && len(c.UnassignedTaskChannel) == 0 {
-			fmt.Println("所有Reduce任务都处理完了")
+			//fmt.Println("所有Reduce任务都处理完了")
 			c.State = 3
-			fmt.Println("c.State当前的值为", c.State)
+			//fmt.Println("c.State当前的值为", c.State)
 			//TODO 准备退出程序
 
 		}
@@ -158,7 +158,7 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 			log.Fatal(err)
 		}
 		if found {
-			fmt.Println(file.Name(), "已删除")
+			//fmt.Println(file.Name(), "已删除")
 			os.Remove(file.Name())
 		}
 	}
@@ -184,7 +184,7 @@ func prepareMapTask(c *Coordinator, files []string) {
 	c.UnassignedTaskChannel = make(chan MRTask, channelsize)
 	//for seq, filename := range os.Args[1:] {
 	for seq, filename := range files {
-		fmt.Println(filename, "Map任务已加入")
+		//fmt.Println(filename, "Map任务已加入")
 		mrtask := MRTask{true, seq, filename, c.NReduce}
 		c.MapTaskInfos = append(c.MapTaskInfos, mrtask)
 		c.UnassignedTaskChannel <- mrtask
@@ -194,13 +194,13 @@ func prepareMapTask(c *Coordinator, files []string) {
 
 // 准备Reduce任务
 func prepareReduceTask(c *Coordinator) {
-	fmt.Println("开始处理Reduce任务")
+	//fmt.Println("开始处理Reduce任务")
 	//Reduce任务应该就是nReduce个
 	for i := 0; i < c.NReduce; i++ {
 		c.ReduceTaskInfos = append(c.ReduceTaskInfos, MRTask{false, i, "mr-.-" + strconv.Itoa(i) + "$", c.NReduce})
 	}
 	for _, t := range c.ReduceTaskInfos {
-		fmt.Println("Map任务", t.TaskName, "已加入")
+		//fmt.Println("Map任务", t.TaskName, "已加入")
 		c.UnassignedTaskChannel <- t
 	}
 	c.State = 2

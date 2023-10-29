@@ -50,7 +50,7 @@ func Worker(mapf func(string, string) []KeyValue,
 	for true {
 		mrtask := GetTask()
 		if mrtask.TaskName != "" {
-			fmt.Println("worker ", workid, "成功获取到任务", mrtask.TaskName)
+			//fmt.Println("worker ", workid, "成功获取到任务", mrtask.TaskName)
 			if mrtask.IsMapTask {
 				doMapTask(mrtask, mapf)
 			} else {
@@ -62,7 +62,7 @@ func Worker(mapf func(string, string) []KeyValue,
 			TaskDone(mrtask)
 
 		} else {
-			fmt.Println("任务获取失败，当前worker休眠10s")
+			//fmt.Println("任务获取失败，当前worker休眠10s")
 			time.Sleep(time.Second * 10)
 		}
 	}
@@ -74,7 +74,7 @@ func GetTask() MRTask {
 
 	ok := call("Coordinator.AssignTask", &args, &reply)
 	if ok {
-		fmt.Println(reply.TaskName)
+		//fmt.Println(reply.TaskName)
 		return MRTask{reply.IsMap, reply.Seq, reply.TaskName, reply.NReduce}
 	} else {
 		return MRTask{}
@@ -90,9 +90,9 @@ func TaskDone(mrtask MRTask) {
 
 	ok := call("Coordinator.Finished", &args, &reply)
 	if ok {
-		fmt.Println("任务完成信息已传达")
+		//fmt.Println("任务完成信息已传达")
 	} else {
-		fmt.Println("任务完成信息传递失败")
+		//fmt.Println("任务完成信息传递失败")
 	}
 }
 
@@ -149,7 +149,7 @@ func doMapTask(t MRTask, mapf func(string, string) []KeyValue) {
 	intermediate := make([][]KeyValue, nreduce)
 
 	file, err := os.Open(t.TaskName)
-	fmt.Println(t.TaskName, "已读取")
+	//fmt.Println(t.TaskName, "已读取")
 
 	if err != nil {
 		log.Fatalf("cannot open %v", t.TaskName)
@@ -189,13 +189,13 @@ func doMapTask(t MRTask, mapf func(string, string) []KeyValue) {
 		//更改文件名
 		err := os.Rename(onametmp, oname)
 		if err == nil {
-			fmt.Println("文件", oname, "创建成功")
+			//fmt.Println("文件", oname, "创建成功")
 		}
 	}
 }
 
 func doReduceTask(t MRTask, reducef func(string, []string) string) {
-	fmt.Println("Worker正在处理Reduce任务", t.TaskName)
+	//fmt.Println("Worker正在处理Reduce任务", t.TaskName)
 	intermediate := []KeyValue{}
 	files, err := os.ReadDir("./")
 	if err != nil {
@@ -208,7 +208,7 @@ func doReduceTask(t MRTask, reducef func(string, []string) string) {
 			log.Fatal(err)
 		}
 		if found {
-			fmt.Println(file.Name(), "已读取")
+			//fmt.Println(file.Name(), "已读取")
 			//f, err := os.Open(file.Name())
 			//dropErr(err)
 			//bio := bufio.NewReader(f)
@@ -223,7 +223,7 @@ func doReduceTask(t MRTask, reducef func(string, []string) string) {
 			dropErr(err)
 			err = json.Unmarshal(content, &tmp)
 			intermediate = append(intermediate, tmp...)
-			fmt.Println("tmp有", len(tmp), "个元素")
+			//fmt.Println("tmp有", len(tmp), "个元素")
 			sort.Sort(ByKey(intermediate))
 
 		}
@@ -252,7 +252,7 @@ func doReduceTask(t MRTask, reducef func(string, []string) string) {
 	//更改文件名
 	err = os.Rename(onametmp, oname)
 	if err == nil {
-		fmt.Println("文件", oname, "创建成功")
+		//fmt.Println("文件", oname, "创建成功")
 	}
 
 }
