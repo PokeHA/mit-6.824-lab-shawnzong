@@ -45,7 +45,7 @@ func Worker(mapf func(string, string) []KeyValue,
 	// uncomment to send the Example RPC to the coordinator.
 	//CallExample()
 
-	workid := time.Now().UnixNano()
+	//workid := time.Now().UnixNano()
 
 	for true {
 		mrtask := GetTask()
