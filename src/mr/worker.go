@@ -223,11 +223,10 @@ func doReduceTask(t MRTask, reducef func(string, []string) string) {
 			dropErr(err)
 			err = json.Unmarshal(content, &tmp)
 			intermediate = append(intermediate, tmp...)
-			//fmt.Println("tmp有", len(tmp), "个元素")
-			sort.Sort(ByKey(intermediate))
-
+			//fmt.Println("tmp有", len(tmp), "个元素"
 		}
 	}
+	sort.Sort(ByKey(intermediate))
 	oname := "mr-out-" + strconv.Itoa(t.Seq)
 	onametmp := oname + "-tmp"
 	ofile, _ := os.Create(onametmp)
