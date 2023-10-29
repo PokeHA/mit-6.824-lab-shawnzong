@@ -107,7 +107,7 @@ func (c *Coordinator) Finished(args *TaskFinishedArgs, reply *TaskFinishedReply)
 			fmt.Println("所有Reduce任务都处理完了")
 			c.State = 0
 			//TODO 准备退出程序
-
+			c.Done()
 		}
 	}
 	return nil

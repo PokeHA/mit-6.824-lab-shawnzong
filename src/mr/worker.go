@@ -1,10 +1,12 @@
 package mr
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"time"
@@ -194,5 +196,60 @@ func doMapTask(t MRTask, mapf func(string, string) []KeyValue) {
 }
 
 func doReduceTask(t MRTask, reducef func(string, []string) string) {
-	fmt.Println("Worker接收到Reduce任务", t.TaskName)
+	fmt.Println("Worker正在处理Reduce任务", t.TaskName)
+	intermediate := []KeyValue{}
+	files, err := os.ReadDir("./")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for _, file := range files {
+		found, err := regexp.MatchString(t.TaskName, file.Name())
+		if err != nil {
+			log.Fatal(err)
+		}
+		if found {
+			fmt.Println(file.Name(), "已读取")
+			f, err := os.Open(file.Name())
+			dropErr(err)
+			bio := bufio.NewReader(f)
+			// ReadLine() 方法一次尝试读取一行，如果过默认缓存值就会报错。默认遇见'\n'换行符会返回值。isPrefix 在查找到行尾标记后返回 false
+			bfRead, _, err := bio.ReadLine()
+			dropErr(err)
+
+			tmp := []KeyValue{}
+			json.Unmarshal([]byte(bfRead), &tmp)
+			intermediate = append(intermediate, tmp...)
+			sort.Sort(ByKey(intermediate))
+
+		}
+	}
+	oname := "mr-out-" + strconv.Itoa(t.Seq)
+	ofile, _ := os.Create(oname)
+	defer ofile.Close()
+
+	i := 0
+	for i < len(intermediate) {
+		j := i + 1
+		for j < len(intermediate) && intermediate[j].Key == intermediate[i].Key {
+			j++
+		}
+		values := []string{}
+		for k := i; k < j; k++ {
+			values = append(values, intermediate[k].Value)
+		}
+		output := reducef(intermediate[i].Key, values)
+
+		// this is the correct format for each line of Reduce output.
+		fmt.Fprintf(ofile, "%v %v\n", intermediate[i].Key, output)
+		i = j
+	}
+
+}
+
+// 创建一个错误处理函数，避免过多的 if err != nil{} 出现
+func dropErr(e error) {
+	if e != nil {
+		panic(e)
+	}
 }
