@@ -57,7 +57,7 @@ func Worker(mapf func(string, string) []KeyValue,
 			}
 
 			//TODO 删除这个停三秒
-			time.Sleep(time.Second * 3)
+			//time.Sleep(time.Second * 3)
 			TaskDone(mrtask)
 
 		} else {
