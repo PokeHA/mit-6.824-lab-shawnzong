@@ -1,7 +1,6 @@
 package mr
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -210,15 +209,19 @@ func doReduceTask(t MRTask, reducef func(string, []string) string) {
 		}
 		if found {
 			fmt.Println(file.Name(), "已读取")
-			f, err := os.Open(file.Name())
-			dropErr(err)
-			bio := bufio.NewReader(f)
-			// ReadLine() 方法一次尝试读取一行，如果过默认缓存值就会报错。默认遇见'\n'换行符会返回值。isPrefix 在查找到行尾标记后返回 false
-			bfRead, _, err := bio.ReadLine()
-			dropErr(err)
+			//f, err := os.Open(file.Name())
+			//dropErr(err)
+			//bio := bufio.NewReader(f)
+			//// ReadLine() 方法一次尝试读取一行，如果过默认缓存值就会报错。默认遇见'\n'换行符会返回值。isPrefix 在查找到行尾标记后返回 false
+			//bfRead, _, err := bio.ReadLine()
+			//dropErr(err)
+			//
+			var tmp []KeyValue
+			//json.Unmarshal([]byte(bfRead), &tmp)
 
-			tmp := []KeyValue{}
-			json.Unmarshal([]byte(bfRead), &tmp)
+			content, err := ioutil.ReadFile("./config.json")
+			dropErr(err)
+			err = json.Unmarshal(content, &tmp)
 			intermediate = append(intermediate, tmp...)
 			fmt.Println("tmp有", len(tmp), "个元素")
 			sort.Sort(ByKey(intermediate))
