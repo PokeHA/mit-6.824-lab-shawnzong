@@ -105,9 +105,9 @@ func (c *Coordinator) Finished(args *TaskFinishedArgs, reply *TaskFinishedReply)
 		fmt.Println("Coordinator：Reduce任务已完成", args.TaskName)
 		if len(c.AssignedTaskMap) == 0 && len(c.UnassignedTaskChannel) == 0 {
 			fmt.Println("所有Reduce任务都处理完了")
-			c.State = 0
+			c.State = 3
 			//TODO 准备退出程序
-			c.Done()
+
 		}
 	}
 	return nil
@@ -133,6 +133,9 @@ func (c *Coordinator) Done() bool {
 	ret := false
 
 	// Your code here.
+	if c.State == 3 {
+		ret = true
+	}
 
 	return ret
 }
